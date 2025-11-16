@@ -190,7 +190,8 @@ function updateChart() {
       mode: "markers",
       marker: {
         size: d.map(r => r.bubbleSize),
-        color: regionColor(region)
+        color: regionColor(region),
+        opacity: 0.85
       }
     };
   });
