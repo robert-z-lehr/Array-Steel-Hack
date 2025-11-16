@@ -9,13 +9,15 @@
 
 <body>
   <header>
-    <h1>Steel Cost–Carbon Prototype</h1>
-    <p class="subtitle">Decision-support tool for exploring steel-supply trade-offs in cost, carbon and sourcing.</p>
+    <h1>ARRAY Steel Cost–Carbon Explorer</h1>
+    <p class="subtitle">
+      Prototype decision-support tool for evaluating cost–carbon trade-offs in global steel sourcing.
+    </p>
   </header>
 
-  <!-- Horizontal layout: sliders left, chart right -->
+  <!-- Main horizontal layout -->
   <div id="mainRow">
-    
+
     <!-- Controls -->
     <section id="controls">
       <h2>Controls</h2>
@@ -36,42 +38,74 @@
       <button class="preset" data-type="baseline">Baseline</button>
       <button class="preset" data-type="highTariff">High Tariff</button>
       <button class="preset" data-type="carbon2050">Carbon 2050</button>
+
+      <!-- Variable list -->
+      <div id="variableList">
+        <h3>Variables Included</h3>
+        <ul>
+          <li>Delivered steel cost</li>
+          <li>Tariffs on imports</li>
+          <li>Shipping costs</li>
+          <li>Domestic incentives (IRA-style)</li>
+          <li>CO₂ intensity by region</li>
+          <li>Region-specific volume (bubble size)</li>
+          <li>Carbon-adjusted cost</li>
+          <li>Timeline evolution: 2025–2050</li>
+        </ul>
+      </div>
     </section>
 
     <!-- Chart -->
     <section id="chartSection">
       <div id="chart"></div>
     </section>
-
   </div>
 
-  <!-- Summary -->
-  <section id="summary">
-    <h2>Summary: U.S. vs China</h2>
-    <table>
-      <tr><th>Metric</th><th>U.S.</th><th>China</th><th>Δ (US − CN)</th></tr>
-      <tr>
-        <td>Delivered Cost</td>
-        <td id="usCost"></td>
-        <td id="cnCost"></td>
-        <td id="deltaCost"></td>
-      </tr>
-      <tr>
-        <td>CO₂ Intensity</td>
-        <td id="usCo2"></td>
-        <td id="cnCo2"></td>
-        <td id="deltaCo2"></td>
-      </tr>
-      <tr>
-        <td>Carbon-Adjusted Cost</td>
-        <td id="usAdj"></td>
-        <td id="cnAdj"></td>
-        <td id="deltaAdj"></td>
-      </tr>
-    </table>
-  </section>
+  <!-- Summary + Roadmap -->
+  <div id="bottomRow">
+
+    <!-- Summary -->
+    <section id="summary">
+      <h2>Summary: U.S. vs China</h2>
+      <table>
+        <tr><th>Metric</th><th>U.S.</th><th>China</th><th>Δ (US − CN)</th></tr>
+        <tr>
+          <td>Delivered Cost</td>
+          <td id="usCost"></td>
+          <td id="cnCost"></td>
+          <td id="deltaCost"></td>
+        </tr>
+        <tr>
+          <td>CO₂ Intensity</td>
+          <td id="usCo2"></td>
+          <td id="cnCo2"></td>
+          <td id="deltaCo2"></td>
+        </tr>
+        <tr>
+          <td>Carbon-Adjusted Cost</td>
+          <td id="usAdj"></td>
+          <td id="cnAdj"></td>
+          <td id="deltaAdj"></td>
+        </tr>
+      </table>
+    </section>
+
+    <!-- Right panel: roadmap -->
+    <section id="roadmap">
+      <h2>Roadmap: From Prototype → Full Decision Engine</h2>
+      <ul>
+        <li>Track volatility of key inputs monthly</li>
+        <li>Log which variables were available at each procurement decision</li>
+        <li>Identify high-impact vs low-impact uncertainties</li>
+        <li>Use dimensionality reduction (PCA or nonlinear PCA)</li>
+        <li>Model hedging strategies under uncertainty</li>
+        <li>Integrate live price feeds and real emissions data</li>
+        <li>Enable scenario comparisons and stress tests</li>
+      </ul>
+    </section>
+
+  </div>
 
   <script src="script.js"></script>
 </body>
 </html>
-
