@@ -1,25 +1,26 @@
 //------------------------------------------------------------
-// MINIMAL PROTOTYPE — CLEAN GAPMINDER TOOL
+// ARRAY Steel Cost–Carbon Explorer (Gapminder-style prototype)
 //------------------------------------------------------------
 
-// Global state
+// Global state driven by sliders
 const state = {
-  tariff: 10,
-  shipping: 60,
-  incentive: 40,
-  carbon: 75
+  tariff: 10,     // % on imports
+  shipping: 60,   // $/ton for overseas steel
+  incentive: 40,  // $/ton domestic incentive
+  carbon: 75      // $/tCO2
 };
 
-// Regions and default data
+// Regions
 const regions = ["US", "EU", "Australia", "Brazil", "China", "South Africa"];
 
+// Stylized base values (can be replaced by real data later)
 const baseCost = {
   US: 950,
   EU: 1000,
-  Australia: 900,
+  Australia: 880,
   Brazil: 760,
-  China: 680,
-  "South Africa": 830
+  China: 650,
+  "South Africa": 820
 };
 
 const baseCo2 = {
@@ -31,21 +32,28 @@ const baseCo2 = {
   "South Africa": 1750
 };
 
-// Year range
+// Year range for animation
 const years = [];
 for (let y = 2025; y <= 2050; y++) years.push(y);
 
-// Generate stylized dataset
+// Generate stylized long-horizon dataset
 function genData() {
   const rows = [];
-  years.forEach((yr, i) => {
+  years.forEach((yr, t) => {
     regions.forEach(region => {
+      const isUS = region === "US";
       rows.push({
         region,
         year: yr,
-        cost: baseCost[region] + (region === "US" ? -8 * i : 5 * i),
-        co2: baseCo2[region] - (region === "US" ? 10 * i : 3 * i),
-        volume: 50000 + Math.random() * 30000
+        cost:
+          baseCost[region] +
+          (isUS ? -12 * t : 8 * t) +
+          (Math.random() - 0.5) * 40,
+        co2:
+          baseCo2[region] -
+          (isUS ? 12 * t : 4 * t) +
+          (Math.random() - 0.5) * 80,
+        volume: 30000 + t * 1000 + Math.random() * 20000
       });
     });
   });
@@ -54,7 +62,7 @@ function genData() {
 
 const baseData = genData();
 
-// Apply scenario adjustments
+// Compute scenario-adjusted metrics
 function computeScenario() {
   return baseData.map(d => {
     const isDomestic = d.region === "US";
@@ -72,7 +80,7 @@ function computeScenario() {
   });
 }
 
-// Legend colors
+// Region color map
 function regionColor(region) {
   return {
     US: "#1f77b4",
@@ -84,7 +92,7 @@ function regionColor(region) {
   }[region];
 }
 
-// Build animation frames — one trace per region
+// Build Plotly animation frames — one trace per region
 function buildFrames(all) {
   return years.map(yr => {
     const frameTraces = regions.map(region => {
@@ -109,13 +117,13 @@ function buildFrames(all) {
   });
 }
 
-// Initial chart
+// Initialize chart
 function initChart() {
-  const all = computeScenario();
-  const initYear = years[0];
+  const scenario = computeScenario();
+  const startYear = years[0];
 
-  const initData = regions.map(region => {
-    const d = all.filter(r => r.region === region && r.year === initYear);
+  const initTraces = regions.map(region => {
+    const d = scenario.filter(r => r.region === region && r.year === startYear);
     return {
       name: region,
       x: d.map(r => r.deliveredCost),
@@ -129,12 +137,12 @@ function initChart() {
     };
   });
 
-  const frames = buildFrames(all);
+  const frames = buildFrames(scenario);
 
   const layout = {
-    title: "Cost vs CO₂",
+    title: "Delivered Cost vs CO₂ Intensity (2025–2050)",
     xaxis: { title: "Delivered Cost ($/ton)" },
-    yaxis: { title: "CO₂ (kg/ton)" },
+    yaxis: { title: "CO₂ Intensity (kg CO₂/ton steel)" },
     height: 650,
     showlegend: true,
     legend: { x: 1, y: 1 },
@@ -149,29 +157,30 @@ function initChart() {
       type: "buttons",
       showactive: false,
       buttons: [
-        { label: "Play", method: "animate", args: [null, {frame: {duration: 700}}] },
+        { label: "Play", method: "animate", args: [null, {frame: {duration: 500}}] },
         { label: "Pause", method: "animate", args: [[null], {mode: "immediate"}] }
       ]
     }]
   };
 
-  Plotly.newPlot("chart", initData, layout).then(() => {
+  Plotly.newPlot("chart", initTraces, layout).then(() => {
     Plotly.addFrames("chart", frames);
   });
 }
 
-// Refresh chart + summary table
+// Update chart and summary table when sliders or presets change
 function updateChart() {
-  const all = computeScenario();
-  const initYear = years[0];
+  const scenario = computeScenario();
+  const startYear = years[0];
 
+  // Rebuild traces for the start year
   const traces = regions.map(region => {
-    const d = all.filter(r => r.region === region && r.year === initYear);
+    const d = scenario.filter(r => r.region === region && r.year === startYear);
     return {
       name: region,
       x: d.map(r => r.deliveredCost),
       y: d.map(r => r.co2),
-      text: d.map(r => `${region} (${initYear})`),
+      text: d.map(r => `${region} (${startYear})`),
       mode: "markers",
       marker: {
         size: d.map(r => r.bubbleSize),
@@ -180,42 +189,52 @@ function updateChart() {
     };
   });
 
-  const frames = buildFrames(all);
+  const frames = buildFrames(scenario);
 
   Plotly.react("chart", traces, {
     xaxis: { title: "Delivered Cost ($/ton)" },
-    yaxis: { title: "CO₂ (kg/ton)" }
+    yaxis: { title: "CO₂ Intensity (kg CO₂/ton steel)" }
   });
-
   Plotly.addFrames("chart", frames);
 
-  const us = all.find(d => d.region === "US" && d.year === initYear);
-  const cn = all.find(d => d.region === "China" && d.year === initYear);
+  // Update U.S. vs China summary
+  const us = scenario.find(d => d.region === "US" && d.year === startYear);
+  const cn = scenario.find(d => d.region === "China" && d.year === startYear);
 
-  document.getElementById("usCost").textContent = us.deliveredCost.toFixed(0);
-  document.getElementById("cnCost").textContent = cn.deliveredCost.toFixed(0);
-  document.getElementById("deltaCost").textContent = (us.deliveredCost - cn.deliveredCost).toFixed(0);
+  const costDiff = us.deliveredCost - cn.deliveredCost;
+  const co2Diff = us.co2 - cn.co2;
+  const adjDiff = us.carbonAdj - cn.carbonAdj;
 
-  document.getElementById("usCo2").textContent = us.co2.toFixed(0);
-  document.getElementById("cnCo2").textContent = cn.co2.toFixed(0);
-  document.getElementById("deltaCo2").textContent = (us.co2 - cn.co2).toFixed(0);
+  document.getElementById("usCost").textContent = `$${us.deliveredCost.toFixed(0)}`;
+  document.getElementById("cnCost").textContent = `$${cn.deliveredCost.toFixed(0)}`;
+  document.getElementById("deltaCost").textContent =
+    `${costDiff >= 0 ? "+" : ""}$${costDiff.toFixed(0)}`;
 
-  document.getElementById("usAdj").textContent = us.carbonAdj.toFixed(0);
-  document.getElementById("cnAdj").textContent = cn.carbonAdj.toFixed(0);
-  document.getElementById("deltaAdj").textContent = (us.carbonAdj - cn.carbonAdj).toFixed(0);
+  document.getElementById("usCo2").textContent = `${us.co2.toFixed(0)} kg`;
+  document.getElementById("cnCo2").textContent = `${cn.co2.toFixed(0)} kg`;
+  document.getElementById("deltaCo2").textContent =
+    `${co2Diff >= 0 ? "+" : ""}${co2Diff.toFixed(0)} kg`;
+
+  document.getElementById("usAdj").textContent = `$${us.carbonAdj.toFixed(0)}`;
+  document.getElementById("cnAdj").textContent = `$${cn.carbonAdj.toFixed(0)}`;
+  document.getElementById("deltaAdj").textContent =
+    `${adjDiff >= 0 ? "+" : ""}$${adjDiff.toFixed(0)}`;
 }
 
-// Wire sliders
+// Bind sliders and presets
 function bindControls() {
-  [
+  const bindings = [
     ["tariffSlider", "tariffValue", "tariff"],
     ["shippingSlider", "shippingValue", "shipping"],
     ["incentiveSlider", "incentiveValue", "incentive"],
     ["carbonSlider", "carbonValue", "carbon"]
-  ].forEach(([sliderId, labelId, key]) => {
+  ];
+
+  bindings.forEach(([sliderId, labelId, key]) => {
     const slider = document.getElementById(sliderId);
     const label = document.getElementById(labelId);
     label.textContent = slider.value;
+
     slider.oninput = () => {
       state[key] = Number(slider.value);
       label.textContent = slider.value;
@@ -223,7 +242,6 @@ function bindControls() {
     };
   });
 
-  // Presets
   document.querySelectorAll(".preset").forEach(btn => {
     btn.onclick = () => {
       if (btn.dataset.type === "baseline") {
@@ -234,9 +252,9 @@ function bindControls() {
       }
       if (btn.dataset.type === "highTariff") {
         state.tariff = 30;
-        state.shipping = 100;
-        state.incentive = 30;
-        state.carbon = 50;
+        state.shipping = 120;
+        state.incentive = 25;
+        state.carbon = 40;
       }
       if (btn.dataset.type === "carbon2050") {
         state.tariff = 5;
@@ -245,6 +263,7 @@ function bindControls() {
         state.carbon = 200;
       }
 
+      // Sync slider UI
       tariffSlider.value = state.tariff;
       shippingSlider.value = state.shipping;
       incentiveSlider.value = state.incentive;
@@ -260,7 +279,7 @@ function bindControls() {
   });
 }
 
-// Init
+// Initialize when DOM ready
 document.addEventListener("DOMContentLoaded", () => {
   bindControls();
   initChart();
