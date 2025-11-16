@@ -189,9 +189,11 @@ function initChart() {
     }]
   };
 
-  // CRITICAL FIX:
-  // Frames must be passed **in the newPlot call**
-  Plotly.newPlot("chart", initTraces, layout, { responsive: true, frames });
+  // IMPORTANT: newPlot MUST be without frames
+  Plotly.newPlot("chart", initTraces, layout);
+
+  // NOW add frames (correct method)
+  Plotly.addFrames("chart", frames);
 }
 
 // ------------------------------------------------------------
