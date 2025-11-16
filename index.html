@@ -9,21 +9,24 @@
 
 <body>
   <header>
-    <h1>Steel Cost–Carbon Prototype</h1>
-    <p class="subtitle">Decision-support tool for exploring steel-supply trade-offs in cost, carbon and sourcing.</p>
+    <h1>ARRAY Steel Cost–Carbon Explorer</h1>
+    <p class="subtitle">
+      Prototype decision-support tool for exploring steel-supply trade-offs in cost, carbon,
+      and sourcing assumptions across locations and time.
+    </p>
   </header>
 
-  <!-- Horizontal layout: sliders left, chart right -->
+  <!-- Horizontal layout: controls left, chart right -->
   <div id="mainRow">
-    
-    <!-- Controls -->
+
+    <!-- Controls + variable list -->
     <section id="controls">
       <h2>Controls</h2>
 
-      <label>Tariff (%): <span id="tariffValue"></span></label>
+      <label>Tariff on Imports (%): <span id="tariffValue"></span></label>
       <input type="range" id="tariffSlider" min="0" max="30" step="1" value="10" />
 
-      <label>Shipping ($/ton): <span id="shippingValue"></span></label>
+      <label>Shipping for Overseas Steel ($/ton): <span id="shippingValue"></span></label>
       <input type="range" id="shippingSlider" min="0" max="250" step="10" value="60" />
 
       <label>Domestic Incentive ($/ton): <span id="incentiveValue"></span></label>
@@ -32,54 +35,102 @@
       <label>Carbon Price ($/tCO₂): <span id="carbonValue"></span></label>
       <input type="range" id="carbonSlider" min="0" max="250" step="10" value="75" />
 
-      <h3>Presets</h3>
+      <h3>Scenario Presets</h3>
       <button class="preset" data-type="baseline">Baseline</button>
       <button class="preset" data-type="highTariff">High Tariff</button>
       <button class="preset" data-type="carbon2050">Carbon 2050</button>
+
+      <div id="variableList">
+        <h3>Variables Included in This Prototype</h3>
+        <ul>
+          <li>Region-specific base steel cost</li>
+          <li>Region-specific CO₂ intensity</li>
+          <li>Delivered cost (cost + tariffs + shipping − incentives)</li>
+          <li>Carbon price and carbon-adjusted cost</li>
+          <li>Projected volumes by region (bubble size)</li>
+          <li>Timeline from 2025 to 2050</li>
+          <li>Domestic vs imported sourcing effects (U.S. vs rest of world)</li>
+        </ul>
+      </div>
     </section>
 
-    <!-- Chart -->
+    <!-- Chart + explanation -->
     <section id="chartSection">
+      <h2>Gapminder-Style Cost–Carbon Bubble Plot</h2>
+      <p class="chartExplanation">
+        Each bubble is a region in a given year. The horizontal axis is delivered cost ($/ton),
+        the vertical axis is CO₂ intensity (kg CO₂/ton), and bubble size reflects projected volume.
+        Use the time slider and play/pause controls to see how relative cost–carbon positions evolve over time
+        under different tariffs, shipping costs, incentives, and carbon prices.
+      </p>
       <div id="chart"></div>
     </section>
 
   </div>
 
-  <!-- Summary -->
-  <section id="summary">
-    <h2>Summary: U.S. vs China</h2>
+  <!-- Bottom row: summary + roadmap -->
+  <div id="bottomRow">
 
-    <table>
-      <tr>
-        <th>Metric</th>
-        <th>Meaning / Units</th>
-        <th>U.S.</th>
-        <th>China</th>
-        <th>Difference</th>
-      </tr>
-      <tr>
-        <td>Delivered Cost</td>
-        <td>Total landed steel cost ($/ton)</td>
-        <td id="usCost"></td>
-        <td id="cnCost"></td>
-        <td id="deltaCost"></td>
-      </tr>
-      <tr>
-        <td>CO₂ Intensity</td>
-        <td>Emissions per ton of steel (kg CO₂/ton)</td>
-        <td id="usCo2"></td>
-        <td id="cnCo2"></td>
-        <td id="deltaCo2"></td>
-      </tr>
-      <tr>
-        <td>Carbon-Adjusted Cost</td>
-        <td>Delivered cost + (CO₂ × carbon price)</td>
-        <td id="usAdj"></td>
-        <td id="cnAdj"></td>
-        <td id="deltaAdj"></td>
-      </tr>
-    </table>
-  </section>
+    <!-- Summary table -->
+    <section id="summary">
+      <h2>Summary: U.S. vs China (Current Scenario at Start Year)</h2>
+      <table>
+        <tr>
+          <th>Metric</th>
+          <th>U.S.</th>
+          <th>China</th>
+          <th>Difference</th>
+          <th>Meaning</th>
+        </tr>
+        <tr>
+          <td>Delivered Cost</td>
+          <td id="usCost"></td>
+          <td id="cnCost"></td>
+          <td id="deltaCost"></td>
+          <td>
+            Difference in total landed steel cost per ton. Positive means U.S. steel is more
+            expensive than Chinese steel in this scenario; negative means U.S. is cheaper.
+          </td>
+        </tr>
+        <tr>
+          <td>CO₂ Intensity</td>
+          <td id="usCo2"></td>
+          <td id="cnCo2"></td>
+          <td id="deltaCo2"></td>
+          <td>
+            Difference in emissions per ton of steel. Positive means U.S. steel emits more CO₂
+            per ton; negative means U.S. steel is cleaner per ton than Chinese steel.
+          </td>
+        </tr>
+        <tr>
+          <td>Carbon-Adjusted Cost</td>
+          <td id="usAdj"></td>
+          <td id="cnAdj"></td>
+          <td id="deltaAdj"></td>
+          <td>
+            Delivered cost plus the monetized value of emissions using the selected carbon price.
+            Positive difference means U.S. steel is more expensive after accounting for carbon;
+            negative difference means U.S. is cheaper on a carbon-adjusted basis.
+          </td>
+        </tr>
+      </table>
+    </section>
+
+    <!-- Roadmap / next steps -->
+    <section id="roadmap">
+      <h2>Next Steps to a Robust Decision-Support Tool</h2>
+      <ul>
+        <li>Replace stylized cost, CO₂, and volume values with live or regularly updated data feeds.</li>
+        <li>Track volatility of each input (price, freight, tariffs, incentives) over time.</li>
+        <li>Maintain a decision log: which variables were available and used at each procurement decision.</li>
+        <li>Use dimensionality reduction (e.g., PCA or nonlinear methods) to identify the most influential drivers.</li>
+        <li>Model uncertainty explicitly (ranges or distributions) and run scenario stress tests.</li>
+        <li>Evaluate hedging strategies (e.g., contracts, diversified sourcing) under volatile conditions.</li>
+        <li>Extend from regional aggregates to supplier-level and product-level comparisons.</li>
+      </ul>
+    </section>
+
+  </div>
 
   <script src="script.js"></script>
 </body>
