@@ -3,6 +3,7 @@
 // WITH: Temporal animation, bubble-size evolution, full frames
 //------------------------------------------------------------
 
+
 // Global state
 const state = {
   tariff: 10,
