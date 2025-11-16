@@ -1,19 +1,20 @@
 //------------------------------------------------------------
 // ARRAY Steel Cost–Carbon Explorer (Gapminder-style prototype)
+// WITH: Temporal animation, bubble-size evolution, full frames
 //------------------------------------------------------------
 
-// Global state driven by sliders
+// Global state
 const state = {
-  tariff: 10,     // % on imports
-  shipping: 60,   // $/ton for overseas steel
-  incentive: 40,  // $/ton domestic incentive
-  carbon: 75      // $/tCO2
+  tariff: 10,
+  shipping: 60,
+  incentive: 40,
+  carbon: 75
 };
 
 // Regions
 const regions = ["US", "EU", "Australia", "Brazil", "China", "South Africa"];
 
-// Stylized base values (can be replaced by real data later)
+// Stylized base costs and emissions
 const baseCost = {
   US: 950,
   EU: 1000,
@@ -32,28 +33,35 @@ const baseCo2 = {
   "South Africa": 1750
 };
 
-// Year range for animation
+// Timeline for animation
 const years = [];
 for (let y = 2025; y <= 2050; y++) years.push(y);
 
-// Generate stylized long-horizon dataset
+// Generate stylized dataset WITH YEARLY VOLUME GROWTH
 function genData() {
   const rows = [];
   years.forEach((yr, t) => {
     regions.forEach(region => {
       const isUS = region === "US";
+
       rows.push({
         region,
         year: yr,
+
+        // Cost slopes
         cost:
           baseCost[region] +
-          (isUS ? -12 * t : 8 * t) +
-          (Math.random() - 0.5) * 40,
+          (isUS ? -10 * t : 6 * t) +
+          (Math.random() - 0.5) * 30,
+
+        // Emissions slopes
         co2:
           baseCo2[region] -
-          (isUS ? 12 * t : 4 * t) +
-          (Math.random() - 0.5) * 80,
-        volume: 30000 + t * 1000 + Math.random() * 20000
+          (isUS ? 10 * t : 3 * t) +
+          (Math.random() - 0.5) * 60,
+
+        // Volume grows over time → bubble size reflects real trend
+        volume: 20000 + t * 1500 + Math.random() * 8000
       });
     });
   });
@@ -62,7 +70,7 @@ function genData() {
 
 const baseData = genData();
 
-// Compute scenario-adjusted metrics
+// Apply scenario adjustments
 function computeScenario() {
   return baseData.map(d => {
     const isDomestic = d.region === "US";
@@ -74,13 +82,13 @@ function computeScenario() {
     return {
       ...d,
       deliveredCost: delivered,
-      bubbleSize: Math.max(10, Math.sqrt(d.volume) / 8),
+      bubbleSize: Math.max(10, Math.sqrt(d.volume) / 12), // volume-driven bubble size
       carbonAdj: delivered + (d.co2 / 1000) * state.carbon
     };
   });
 }
 
-// Region color map
+// Colors
 function regionColor(region) {
   return {
     US: "#1f77b4",
@@ -92,11 +100,11 @@ function regionColor(region) {
   }[region];
 }
 
-// Build Plotly animation frames — one trace per region
+// Build all frames for Plotly animation
 function buildFrames(all) {
   return years.map(yr => {
-    const frameTraces = regions.map(region => {
-      const d = all.filter(i => i.region === region && i.year === yr);
+    const traces = regions.map(region => {
+      const d = all.filter(x => x.region === region && x.year === yr);
       return {
         name: region,
         x: d.map(i => i.deliveredCost),
@@ -109,15 +117,11 @@ function buildFrames(all) {
         }
       };
     });
-
-    return {
-      name: String(yr),
-      data: frameTraces
-    };
+    return { name: String(yr), data: traces };
   });
 }
 
-// Initialize chart
+// Initialization
 function initChart() {
   const scenario = computeScenario();
   const startYear = years[0];
@@ -142,10 +146,10 @@ function initChart() {
   const layout = {
     title: "Delivered Cost vs CO₂ Intensity (2025–2050)",
     xaxis: { title: "Delivered Cost ($/ton)" },
-    yaxis: { title: "CO₂ Intensity (kg CO₂/ton steel)" },
+    yaxis: { title: "CO₂ Intensity (kg CO₂/ton)" },
     height: 650,
     showlegend: true,
-    legend: { x: 1, y: 1 },
+    legend: { x: 1.02, y: 1 },
     sliders: [{
       steps: years.map(yr => ({
         label: String(yr),
@@ -163,17 +167,16 @@ function initChart() {
     }]
   };
 
-  Plotly.newPlot("chart", initTraces, layout).then(() => {
-    Plotly.addFrames("chart", frames);
-  });
+  Plotly.newPlot("chart", initTraces, layout).then(() =>
+    Plotly.addFrames("chart", frames)
+  );
 }
 
-// Update chart and summary table when sliders or presets change
+// Update (sliders and presets)
 function updateChart() {
   const scenario = computeScenario();
   const startYear = years[0];
 
-  // Rebuild traces for the start year
   const traces = regions.map(region => {
     const d = scenario.filter(r => r.region === region && r.year === startYear);
     return {
@@ -193,11 +196,12 @@ function updateChart() {
 
   Plotly.react("chart", traces, {
     xaxis: { title: "Delivered Cost ($/ton)" },
-    yaxis: { title: "CO₂ Intensity (kg CO₂/ton steel)" }
+    yaxis: { title: "CO₂ (kg CO₂/ton)" }
   });
+
   Plotly.addFrames("chart", frames);
 
-  // Update U.S. vs China summary
+  // Summary table
   const us = scenario.find(d => d.region === "US" && d.year === startYear);
   const cn = scenario.find(d => d.region === "China" && d.year === startYear);
 
@@ -221,7 +225,7 @@ function updateChart() {
     `${adjDiff >= 0 ? "+" : ""}$${adjDiff.toFixed(0)}`;
 }
 
-// Bind sliders and presets
+// Bind controls
 function bindControls() {
   const bindings = [
     ["tariffSlider", "tariffValue", "tariff"],
@@ -263,7 +267,7 @@ function bindControls() {
         state.carbon = 200;
       }
 
-      // Sync slider UI
+      // Sync UI
       tariffSlider.value = state.tariff;
       shippingSlider.value = state.shipping;
       incentiveSlider.value = state.incentive;
@@ -279,7 +283,6 @@ function bindControls() {
   });
 }
 
-// Initialize when DOM ready
 document.addEventListener("DOMContentLoaded", () => {
   bindControls();
   initChart();
