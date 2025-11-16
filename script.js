@@ -1,368 +1,252 @@
 //------------------------------------------------------------
-// ARRAY STEEL COST–CARBON DECISION TOOL (FULL GAPMINDER VERSION)
-//------------------------------------------------------------
-// Features implemented:
-// ✔ Temporal animation (Gapminder-style)
-// ✔ Play/Pause timeline
-// ✔ Bubble size per year
-// ✔ Click-to-highlight region & fade others
-// ✔ Trails (ghost bubbles from past years)
-// ✔ Connecting lines (one per region)
-// ✔ Sliders update ALL years and ALL frames
+// MINIMAL PROTOTYPE — CLEAN GAPMINDER TOOL
 //------------------------------------------------------------
 
-// ============================================================
-// 0. GLOBAL STATE — the slider values and year choice
-// ============================================================
-
+// Global state
 const state = {
-  tariff: 10,          // % tariff on imports
-  shipping: 60,        // USD/ton shipping for overseas steel
-  incentive: 40,       // IRA domestic incentive USD/ton
-  carbonPrice: 75,     // $/t CO2 used for carbon-adjusted cost (for info panels)
-  highlightedRegion: null // which region is selected, null = none
+  tariff: 10,
+  shipping: 60,
+  incentive: 40,
+  carbon: 75
 };
 
-// Regions categorized for logic
-const domesticRegions = ["US"];
-const overseasRegions = ["EU", "Australia", "Brazil", "China", "South Africa"];
+// Regions and default data
+const regions = ["US", "EU", "Australia", "Brazil", "China", "South Africa"];
 
-// ============================================================
-// 1. BASE DATASET — stylized but editable by non-coders
-// ============================================================
-//
-// baseData is filled with entries like:
-// {
-//   region: "US",
-//   method: "EAF",
-//   year: 2024,
-//   baseCost: 950,
-//   baseCo2: 380,
-//   volume: 60000
-// }
-//
-// YOU CAN EDIT THESE values or replace this entire block with CSV loading.
+const baseCost = {
+  US: 950,
+  EU: 1000,
+  Australia: 900,
+  Brazil: 760,
+  China: 680,
+  "South Africa": 830
+};
 
-const baseData = [];
+const baseCo2 = {
+  US: 380,
+  EU: 1850,
+  Australia: 420,
+  Brazil: 440,
+  China: 2100,
+  "South Africa": 1750
+};
 
-(function generateBaseData() {
-  const regions = ["US", "EU", "Australia", "Brazil", "China", "South Africa"];
+// Year range
+const years = [];
+for (let y = 2025; y <= 2050; y++) years.push(y);
 
-  const methods = {
-    US: "EAF",
-    EU: "BF-BOF",
-    Australia: "EAF",
-    Brazil: "EAF",
-    China: "BF-BOF",
-    "South Africa": "BF-BOF"
-  };
-
-  const baseCost0 = {
-    US: 950,
-    EU: 1000,
-    Australia: 900,
-    Brazil: 760,
-    China: 680,
-    "South Africa": 830
-  };
-
-  const baseCo20 = {
-    US: 380,
-    EU: 1850,
-    Australia: 420,
-    Brazil: 440,
-    China: 2100,
-    "South Africa": 1750
-  };
-
-  const years = [2024, 2025, 2026, 2027, 2028, 2029, 2030];
-
-  // Generate modest trends over years
-  for (const region of regions) {
-    const method = methods[region];
-    const costStart = baseCost0[region];
-    const co2Start = baseCo20[region];
-
-    for (let i = 0; i < years.length; i++) {
-      const yr = years[i];
-      const isEAF = method === "EAF";
-
-      // Stylized cost trend (EAF cheaper over time, BF-BOF modest)
-      const costTrend = isEAF ? -10 * i : 5 * i;
-      const costNoise = (Math.random() - 0.5) * 40;
-
-      // Stylized emissions improvements
-      const co2Trend = isEAF ? -15 * i : -5 * i;
-      const co2Noise = (Math.random() - 0.5) * 80;
-
-      // Stylized volumes
-      const volume = 50000 + Math.random() * 40000;
-
-      baseData.push({
+// Generate full dataset (simple stylized trends)
+function genData() {
+  const rows = [];
+  years.forEach((yr, i) => {
+    regions.forEach(region => {
+      rows.push({
         region,
-        method,
         year: yr,
-        baseCost: costStart + costTrend + costNoise,
-        baseCo2: co2Start + co2Trend + co2Noise,
-        volume
+        cost: baseCost[region] + (region === "US" ? -8 * i : 5 * i),
+        co2: baseCo2[region] - (region === "US" ? 10 * i : 3 * i),
+        volume: 50000 + Math.random() * 30000
       });
-    }
-  }
-})();
+    });
+  });
+  return rows;
+}
 
-// ============================================================
-// 2. Compute scenario-adjusted values for ALL YEARS
-// ============================================================
+const baseData = genData();
 
+// Apply scenario adjustments
 function computeScenario() {
-  const data = [];
+  return baseData.map(d => {
+    const isDomestic = d.region === "US";
+    const delivered =
+      d.cost +
+      (isDomestic ? -state.incentive : (state.tariff / 100) * d.cost + state.shipping);
 
-  for (const d of baseData) {
-    const isDomestic = domesticRegions.includes(d.region);
-    const isOverseas = overseasRegions.includes(d.region);
-
-    const tariffAdj = isDomestic ? 0 : (state.tariff / 100) * d.baseCost;
-    const shippingAdj = isOverseas ? state.shipping : 0;
-    const incentiveAdj = isDomestic ? state.incentive : 0;
-
-    const deliveredCost =
-      d.baseCost + tariffAdj + shippingAdj - incentiveAdj;
-
-    const carbonAdjustedCost =
-      deliveredCost + (d.baseCo2 / 1000) * state.carbonPrice;
-
-    data.push({
+    return {
       ...d,
-      deliveredCost,
-      carbonAdjustedCost,
-      bubbleSize: Math.max(10, Math.sqrt(d.volume) / 25)
-    });
-  }
-
-  return data;
+      deliveredCost: delivered,
+      bubbleSize: Math.sqrt(d.volume) / 25,
+      carbonAdj: delivered + (d.co2 / 1000) * state.carbon
+    };
+  });
 }
 
-// ============================================================
-// 3. Build animation frames for Plotly
-// ============================================================
-
-function buildFrames(allData) {
-  const frames = [];
-  const years = [...new Set(allData.map(d => d.year))];
-
-  for (const year of years) {
-    const frameData = allData.filter(d => d.year === year);
-
-    frames.push({
-      name: String(year),
-      data: [{
-        x: frameData.map(d => d.deliveredCost),
-        y: frameData.map(d => d.baseCo2),
-        text: frameData.map(d =>
-          `${d.region} (${d.method})<br>` +
-          `Year: ${d.year}<br>` +
-          `Delivered: $${d.deliveredCost.toFixed(0)}<br>` +
-          `CO₂: ${d.baseCo2.toFixed(0)} kg<br>` +
-          `Volume: ${d.volume.toFixed(0)} t`
-        ),
-        marker: {
-          size: frameData.map(d => d.bubbleSize),
-          color: frameData.map(d => regionColor(d.region)),
-          opacity: frameData.map(d => regionOpacity(d.region))
-        }
-      }]
-    });
-  }
-
-  return frames;
-}
-
-// ============================================================
-// 4. Build trail traces and connecting lines (static)
-// ============================================================
-
-function buildTrails(allData) {
-  const regions = [...new Set(allData.map(d => d.region))];
-  const trails = [];
-
-  for (const region of regions) {
-    const regionData = allData.filter(d => d.region === region);
-    regionData.sort((a, b) => a.year - b.year);
-
-    const xs = regionData.map(d => d.deliveredCost);
-    const ys = regionData.map(d => d.baseCo2);
-
-    // Ghost bubbles (semi-transparent)
-    trails.push({
-      x: xs,
-      y: ys,
-      mode: "markers",
-      marker: {
-        size: regionData.map(d => d.bubbleSize),
-        color: regionColor(region),
-        opacity: 0.15
-      },
-      hoverinfo: "skip",
-      showlegend: false
-    });
-
-    // Connecting lines
-    trails.push({
-      x: xs,
-      y: ys,
-      mode: "lines",
-      line: {
-        width: 1.5,
-        color: regionColor(region)
-      },
-      opacity: 0.3,
-      hoverinfo: "skip",
-      showlegend: false
-    });
-  }
-
-  return trails;
-}
-
-// ============================================================
-// 5. Region color and opacity logic
-// ============================================================
-
+// Legend colors
 function regionColor(region) {
-  const map = {
+  return {
     US: "#1f77b4",
     EU: "#ff7f0e",
     Australia: "#2ca02c",
     Brazil: "#17becf",
     China: "#d62728",
     "South Africa": "#9467bd"
-  };
-  return map[region] || "#7f7f7f";
+  }[region];
 }
 
-function regionOpacity(region) {
-  if (state.highlightedRegion === null) return 1.0;
-  return region === state.highlightedRegion ? 1.0 : 0.15;
+// Build animation frames
+function buildFrames(all) {
+  return years.map(yr => {
+    const data = all.filter(d => d.year === yr);
+    return {
+      name: String(yr),
+      data: [{
+        x: data.map(d => d.deliveredCost),
+        y: data.map(d => d.co2),
+        text: data.map(d => `${d.region}<br>${yr}`),
+        marker: {
+          size: data.map(d => d.bubbleSize),
+          color: data.map(d => regionColor(d.region))
+        }
+      }]
+    };
+  });
 }
 
-// ============================================================
-// 6. Plotly initialization
-// ============================================================
-
+// Initial chart
 function initChart() {
-  const scenario = computeScenario();
-  const years = [...new Set(scenario.map(d => d.year))];
-  const initYear = years[0];
-  const initData = scenario.filter(d => d.year === initYear);
+  const all = computeScenario();
+  const init = all.filter(d => d.year === years[0]);
+  const frames = buildFrames(all);
 
-  const trails = buildTrails(scenario);
-  const frames = buildFrames(scenario);
-
-  const mainBubbleTrace = {
-    x: initData.map(d => d.deliveredCost),
-    y: initData.map(d => d.baseCo2),
+  const trace = {
+    x: init.map(d => d.deliveredCost),
+    y: init.map(d => d.co2),
     mode: "markers",
     type: "scatter",
-    text: initData.map(d =>
-      `${d.region} (${d.method})<br>Delivered: $${d.deliveredCost.toFixed(0)}<br>CO₂: ${d.baseCo2.toFixed(0)}`
-    ),
+    text: init.map(d => d.region),
     marker: {
-      size: initData.map(d => d.bubbleSize),
-      color: initData.map(d => regionColor(d.region)),
-      opacity: initData.map(d => regionOpacity(d.region))
+      size: init.map(d => d.bubbleSize),
+      color: init.map(d => regionColor(d.region))
     }
   };
 
   const layout = {
-    title: "Steel Cost vs Carbon (Interactive Gapminder-Style)",
-    xaxis: { title: "Delivered Cost (USD/ton)" },
-    yaxis: { title: "CO₂ Intensity (kg/ton steel)" },
-    hovermode: "closest",
+    title: "Cost vs CO₂",
+    xaxis: { title: "Delivered Cost ($/ton)" },
+    yaxis: { title: "CO₂ (kg/ton)" },
+    height: 650,
+    showlegend: true,
+    legend: { x: 1, y: 1 },
+    sliders: [{
+      steps: years.map(yr => ({
+        label: String(yr),
+        method: "animate",
+        args: [[String(yr)], {mode: "immediate"}]
+      }))
+    }],
     updatemenus: [{
       type: "buttons",
       showactive: false,
-      x: 0.05,
-      y: 1.15,
-      buttons: [{
-        label: "Play",
-        method: "animate",
-        args: [null, {fromcurrent: true, frame: {duration: 800, redraw: true}}]
-      },{
-        label: "Pause",
-        method: "animate",
-        args: [[null], {mode: "immediate"}]
-      }]
-    }],
-    sliders: [{
-      active: 0,
-      steps: years.map(yr => ({
-        label: yr,
-        method: "animate",
-        args: [[String(yr)], {mode: "immediate", frame: {duration: 0, redraw: true}}]
-      }))
+      buttons: [
+        { label: "Play", method: "animate", args: [null, {frame: {duration: 700}}] },
+        { label: "Pause", method: "animate", args: [[null], {mode: "immediate"}] }
+      ]
     }]
   };
 
-  Plotly.newPlot("chart", [...trails, mainBubbleTrace], layout).then(chart => {
-    chart.on("plotly_click", e => {
-      const idx = e.points[0].pointIndex;
-      const region = scenario.filter(d => d.year === initYear)[idx].region;
+  Plotly.newPlot("chart", [trace], layout).then(() => {
+    Plotly.addFrames("chart", frames);
+  });
+}
 
-      if (state.highlightedRegion === region) {
-        state.highlightedRegion = null;
-      } else {
-        state.highlightedRegion = region;
+// Refresh chart + summary
+function updateChart() {
+  const all = computeScenario();
+  const frames = buildFrames(all);
+  const year0 = years[0];
+  const d0 = all.filter(d => d.year === year0);
+
+  Plotly.react("chart", [{
+    x: d0.map(d => d.deliveredCost),
+    y: d0.map(d => d.co2),
+    mode: "markers",
+    marker: {
+      size: d0.map(d => d.bubbleSize),
+      color: d0.map(d => regionColor(d.region))
+    }
+  }], {
+    xaxis: { title: "Delivered Cost ($/ton)" },
+    yaxis: { title: "CO₂ (kg/ton)" }
+  });
+
+  Plotly.addFrames("chart", frames);
+
+  // Update summary table
+  const us = all.find(d => d.region === "US" && d.year === year0);
+  const cn = all.find(d => d.region === "China" && d.year === year0);
+
+  document.getElementById("usCost").textContent = us.deliveredCost.toFixed(0);
+  document.getElementById("cnCost").textContent = cn.deliveredCost.toFixed(0);
+  document.getElementById("deltaCost").textContent = (us.deliveredCost - cn.deliveredCost).toFixed(0);
+
+  document.getElementById("usCo2").textContent = us.co2.toFixed(0);
+  document.getElementById("cnCo2").textContent = cn.co2.toFixed(0);
+  document.getElementById("deltaCo2").textContent = (us.co2 - cn.co2).toFixed(0);
+
+  document.getElementById("usAdj").textContent = us.carbonAdj.toFixed(0);
+  document.getElementById("cnAdj").textContent = cn.carbonAdj.toFixed(0);
+  document.getElementById("deltaAdj").textContent = (us.carbonAdj - cn.carbonAdj).toFixed(0);
+}
+
+// Wire sliders
+function bindControls() {
+  [
+    ["tariffSlider", "tariffValue", "tariff"],
+    ["shippingSlider", "shippingValue", "shipping"],
+    ["incentiveSlider", "incentiveValue", "incentive"],
+    ["carbonSlider", "carbonValue", "carbon"]
+  ].forEach(([sliderId, labelId, key]) => {
+    const slider = document.getElementById(sliderId);
+    const label = document.getElementById(labelId);
+    label.textContent = slider.value;
+    slider.oninput = () => {
+      state[key] = Number(slider.value);
+      label.textContent = slider.value;
+      updateChart();
+    };
+  });
+
+  // Presets
+  document.querySelectorAll(".preset").forEach(btn => {
+    btn.onclick = () => {
+      if (btn.dataset.type === "baseline") {
+        state.tariff = 10;
+        state.shipping = 60;
+        state.incentive = 40;
+        state.carbon = 75;
+      }
+      if (btn.dataset.type === "highTariff") {
+        state.tariff = 30;
+        state.shipping = 100;
+        state.incentive = 30;
+        state.carbon = 50;
+      }
+      if (btn.dataset.type === "carbon2050") {
+        state.tariff = 5;
+        state.shipping = 40;
+        state.incentive = 80;
+        state.carbon = 200;
       }
 
+      // Update slider UI
+      tariffSlider.value = state.tariff;
+      shippingSlider.value = state.shipping;
+      incentiveSlider.value = state.incentive;
+      carbonSlider.value = state.carbon;
+
+      tariffValue.textContent = state.tariff;
+      shippingValue.textContent = state.shipping;
+      incentiveValue.textContent = state.incentive;
+      carbonValue.textContent = state.carbon;
+
       updateChart();
-    });
+    };
   });
-
-  Plotly.addFrames("chart", frames);
 }
 
-// ============================================================
-// 7. Update chart after sliders or highlight change
-// ============================================================
-
-function updateChart() {
-  const scenario = computeScenario();
-  const frames = buildFrames(scenario);
-  const trails = buildTrails(scenario);
-
-  // Reinitialize plot
-  Plotly.react("chart", [...trails, frames[0].data[0]], {
-    title: "Steel Cost vs Carbon (Interactive Gapminder-Style)"
-  });
-  Plotly.addFrames("chart", frames);
-}
-
-// ============================================================
-// 8. Link sliders to state changes
-// ============================================================
-
+// Init
 document.addEventListener("DOMContentLoaded", () => {
+  bindControls();
   initChart();
-
-  const tariffSlider = document.getElementById("tariffSlider");
-  const shippingSlider = document.getElementById("shippingSlider");
-  const iraSlider = document.getElementById("iraSlider");
-  const carbonSlider = document.getElementById("carbonPriceSlider");
-
-  tariffSlider.oninput = () => {
-    state.tariff = Number(tariffSlider.value);
-    updateChart();
-  };
-  shippingSlider.oninput = () => {
-    state.shipping = Number(shippingSlider.value);
-    updateChart();
-  };
-  iraSlider.oninput = () => {
-    state.incentive = Number(iraSlider.value);
-    updateChart();
-  };
-  carbonSlider.oninput = () => {
-    state.carbonPrice = Number(carbonSlider.value);
-    updateChart();
-  };
+  updateChart();
 });
