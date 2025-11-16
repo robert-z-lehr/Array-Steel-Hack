@@ -150,8 +150,15 @@ header {
 #roadmap {
   flex: 1;
   background: #f0f4f8;
-  padding: 1rem;
+  padding: 1.4rem;
   border-radius: 6px;
+  font-size: 1.1rem; /* larger font */
+  line-height: 1.5;
+}
+
+#roadmap p {
+  margin: 0;
+  padding: 0;
 }
 
 #roadmap h2 {
