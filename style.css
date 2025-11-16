@@ -11,22 +11,34 @@ header {
   padding: 1rem 2rem;
 }
 
+.subtitle {
+  margin-top: 0.3rem;
+  max-width: 900px;
+}
+
 #mainRow {
   display: flex;
   flex-direction: row;
   align-items: flex-start;
 }
 
+/* Left controls column */
 #controls {
-  width: 300px;
+  width: 330px;
   background: white;
   padding: 1rem;
   border-right: 1px solid #ddd;
 }
 
+#controls label {
+  display: block;
+  margin-top: 0.5rem;
+  font-weight: 500;
+}
+
 #controls input[type="range"] {
   width: 100%;
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
 }
 
 #controls button {
@@ -43,9 +55,41 @@ header {
   color: white;
 }
 
+/* Variable list panel */
+#variableList {
+  margin-top: 1rem;
+  background: #f0f4f8;
+  padding: 0.6rem 0.8rem;
+  border-radius: 4px;
+}
+
+#variableList h3 {
+  margin-top: 0;
+  font-size: 0.95rem;
+}
+
+#variableList ul {
+  list-style: square;
+  margin: 0.3rem 0 0 1.2rem;
+  padding: 0;
+  font-size: 0.9rem;
+}
+
+/* Chart section */
 #chartSection {
   flex: 1;
   padding: 1rem;
+}
+
+#chartSection h2 {
+  margin-top: 0;
+}
+
+.chartExplanation {
+  font-size: 0.9rem;
+  max-width: 900px;
+  margin-bottom: 0.5rem;
+  color: #444;
 }
 
 #chart {
@@ -53,21 +97,69 @@ header {
   height: 650px;
 }
 
-#summary table {
-  margin: 1rem;
-  border-collapse: collapse;
-  width: 650px;
+/* Bottom row: summary + roadmap */
+#bottomRow {
+  display: flex;
+  flex-direction: row;
+  padding: 1rem;
 }
-#summary th, #summary td {
+
+/* Summary */
+#summary {
+  width: 520px;
+  margin-right: 1.5rem;
+}
+
+#summary h2 {
+  margin-top: 0;
+}
+
+#summary table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 0.9rem;
+}
+
+#summary th,
+#summary td {
   border: 1px solid #ccc;
   padding: 0.3rem 0.5rem;
+  vertical-align: top;
+}
+
+#summary th:nth-child(1),
+#summary td:nth-child(1) {
+  text-align: left;
+}
+
+#summary th:nth-child(2),
+#summary td:nth-child(2),
+#summary th:nth-child(3),
+#summary td:nth-child(3),
+#summary th:nth-child(4),
+#summary td:nth-child(4) {
   text-align: right;
 }
-#summary th:first-child,
-#summary td:first-child {
+
+#summary th:nth-child(5),
+#summary td:nth-child(5) {
   text-align: left;
 }
-#summary th:nth-child(2),
-#summary td:nth-child(2) {
-  text-align: left;
+
+/* Roadmap panel */
+#roadmap {
+  flex: 1;
+  background: #f0f4f8;
+  padding: 1rem;
+  border-radius: 6px;
+}
+
+#roadmap h2 {
+  margin-top: 0;
+}
+
+#roadmap ul {
+  margin: 0.3rem 0 0 1.2rem;
+  padding: 0;
+  font-size: 0.9rem;
 }
