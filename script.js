@@ -3,7 +3,6 @@
 // WITH: Temporal animation, bubble-size evolution, full frames
 //------------------------------------------------------------
 
-
 // Global state
 const state = {
   tariff: 10,
@@ -52,7 +51,7 @@ function genData() {
         // Cost slopes
         cost:
           baseCost[region] +
-          (isUS ? -12 * t : 9 * t) + 
+          (isUS ? -12 * t : 9 * t) +
           (Math.random() - 0.5) * 35,
 
         // Emissions slopes
@@ -83,7 +82,8 @@ function computeScenario() {
     return {
       ...d,
       deliveredCost: delivered,
-      bubbleSize: Math.max(12, Math.sqrt(d.volume) / 9), // volume-driven bubble size
+      // BUBBLE SIZE IS DRIVEN BY volume HERE:
+      bubbleSize: Math.max(12, Math.sqrt(d.volume) / 9),
       carbonAdj: delivered + (d.co2 / 1000) * state.carbon
     };
   });
@@ -123,32 +123,9 @@ function buildFrames(all) {
   });
 }
 
-// ------------------------------------------------------------
-// UPDATED INITCHART — Fixes Gapminder slider + animation issue
-// ------------------------------------------------------------
-function initChart() {
-  const scenario = computeScenario();
-  const startYear = years[0];
-
-  const initTraces = regions.map(region => {
-    const d = scenario.filter(r => r.region === region && r.year === startYear);
-    return {
-      name: region,
-      x: d.map(r => r.deliveredCost),
-      y: d.map(r => r.co2),
-      text: d.map(r => `${region} (${r.year})`),
-      mode: "markers",
-      marker: {
-        size: d.map(r => r.bubbleSize),
-        color: regionColor(region),
-        opacity: 0.85
-      }
-    };
-  });
-
-  const frames = buildFrames(scenario);
-
-  const layout = {
+// Helper: build layout (used in BOTH initChart and updateChart)
+function buildLayout() {
+  return {
     title: "Delivered Cost vs CO₂ Intensity (2025–2050)",
     xaxis: { title: "Delivered Cost ($/ton)" },
     yaxis: { title: "CO₂ Intensity (kg CO₂/ton)" },
@@ -189,19 +166,41 @@ function initChart() {
       ]
     }]
   };
+}
 
-  // IMPORTANT: newPlot MUST be without frames
+// ------------------------------------------------------------
+// initChart — initial plot WITH slider + frames
+// ------------------------------------------------------------
+function initChart() {
+  const scenario = computeScenario();
+  const startYear = years[0];
+
+  const initTraces = regions.map(region => {
+    const d = scenario.filter(r => r.region === region && r.year === startYear);
+    return {
+      name: region,
+      x: d.map(r => r.deliveredCost),
+      y: d.map(r => r.co2),
+      text: d.map(r => `${region} (${r.year})`),
+      mode: "markers",
+      marker: {
+        size: d.map(r => r.bubbleSize),
+        color: regionColor(region),
+        opacity: 0.85
+      }
+    };
+  });
+
+  const frames = buildFrames(scenario);
+  const layout = buildLayout();
+
   Plotly.newPlot("chart", initTraces, layout);
-
-  // NOW add frames (correct method)
   Plotly.addFrames("chart", frames);
 }
 
 // ------------------------------------------------------------
-// Everything below this line is unchanged
+// updateChart — now PRESERVES slider + Play/Pause
 // ------------------------------------------------------------
-
-// Update (sliders and presets)
 function updateChart() {
   const scenario = computeScenario();
   const startYear = years[0];
@@ -223,12 +222,9 @@ function updateChart() {
   });
 
   const frames = buildFrames(scenario);
+  const layout = buildLayout(); // <- key fix: full layout, including sliders
 
-  Plotly.react("chart", traces, {
-    xaxis: { title: "Delivered Cost ($/ton)" },
-    yaxis: { title: "CO₂ (kg CO₂/ton)" }
-  });
-
+  Plotly.react("chart", traces, layout);
   Plotly.addFrames("chart", frames);
 
   // Summary table
