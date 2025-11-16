@@ -54,7 +54,6 @@ function genData() {
           (isUS ? -12 * t : 9 * t) + 
           (Math.random() - 0.5) * 35,
 
-
         // Emissions slopes
         co2:
           baseCo2[region] -
@@ -123,7 +122,9 @@ function buildFrames(all) {
   });
 }
 
-// Initialization
+// ------------------------------------------------------------
+// UPDATED INITCHART — Fixes Gapminder slider + animation issue
+// ------------------------------------------------------------
 function initChart() {
   const scenario = computeScenario();
   const startYear = years[0];
@@ -153,27 +154,49 @@ function initChart() {
     height: 650,
     showlegend: true,
     legend: { x: 1.02, y: 1 },
+
     sliders: [{
+      active: 0,
       steps: years.map(yr => ({
         label: String(yr),
         method: "animate",
-        args: [[String(yr)], {mode: "immediate"}]
+        args: [[String(yr)], {
+          mode: "immediate",
+          transition: { duration: 0 },
+          frame: { duration: 300, redraw: true }
+        }]
       }))
     }],
+
     updatemenus: [{
       type: "buttons",
       showactive: false,
       buttons: [
-        { label: "Play", method: "animate", args: [null, {frame: {duration: 500}}] },
-        { label: "Pause", method: "animate", args: [[null], {mode: "immediate"}] }
+        {
+          label: "Play",
+          method: "animate",
+          args: [null, {
+            frame: { duration: 400, redraw: true },
+            transition: { duration: 0 }
+          }]
+        },
+        {
+          label: "Pause",
+          method: "animate",
+          args: [[null], { mode: "immediate" }]
+        }
       ]
     }]
   };
 
-  Plotly.newPlot("chart", initTraces, layout).then(() =>
-    Plotly.addFrames("chart", frames)
-  );
+  // CRITICAL FIX:
+  // Frames must be passed **in the newPlot call**
+  Plotly.newPlot("chart", initTraces, layout, { responsive: true, frames });
 }
+
+// ------------------------------------------------------------
+// Everything below this line is unchanged
+// ------------------------------------------------------------
 
 // Update (sliders and presets)
 function updateChart() {
