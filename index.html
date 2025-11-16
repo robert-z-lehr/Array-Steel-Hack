@@ -2,165 +2,75 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Array Steel Cost & Carbon Decision Tool</title>
+  <title>Array Steel Cost & Carbon Prototype</title>
   <link rel="stylesheet" href="style.css" />
-  <!-- Plotly JS from a public CDN -->
   <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
 </head>
+
 <body>
   <header>
-    <h1>Array Steel Cost & Carbon Decision Tool</h1>
-    <p class="subtitle">
-      Explore how tariffs, shipping costs, IRA incentives, and carbon prices change the trade-offs
-      between steel cost and carbon intensity across regions.
-    </p>
+    <h1>Steel Cost–Carbon Prototype</h1>
+    <p class="subtitle">Minimal interactive model for exploring steel trade-offs.</p>
   </header>
 
-  <!-- Objectives section written for non-coders -->
-  <section id="objectives">
-    <h2>Tool Objectives</h2>
-    <ol>
-      <li><strong>Compare steel options</strong> across regions by cost, carbon intensity, and volume.</li>
-      <li><strong>Test policy and market scenarios</strong> by adjusting tariffs, shipping costs,
-          IRA Section 45X incentives, and carbon prices.</li>
-      <li><strong>Highlight U.S. vs China trade-offs</strong> using a simple summary panel.</li>
-      <li><strong>Give non-technical users</strong> an intuitive way to test “what-if” questions
-          without editing formulas.</li>
-    </ol>
-  </section>
+  <!-- Horizontal layout: sliders left, chart right -->
+  <div id="mainRow">
+    
+    <!-- Controls -->
+    <section id="controls">
+      <h2>Controls</h2>
 
-  <!-- Controls for user inputs -->
-  <section id="controls">
-    <h2>Scenario Controls</h2>
-
-    <div class="control-group">
-      <label for="yearSlider">
-        Year:
-        <span id="yearValue"></span>
-      </label>
-      <input type="range" id="yearSlider" min="2024" max="2030" step="1" value="2024" />
-      <p class="hint">
-        Use this to move through time (e.g., pre-IRA to later years). Data here is stylized and can be replaced with real values.
-      </p>
-    </div>
-
-    <div class="control-group">
-      <label for="tariffSlider">
-        Average Tariff on Imported Steel (%):
-        <span id="tariffValue"></span>
-      </label>
+      <label>Tariff (%): <span id="tariffValue"></span></label>
       <input type="range" id="tariffSlider" min="0" max="30" step="1" value="10" />
-      <p class="hint">
-        Applied mainly to non-U.S. regions. Raises delivered cost for imported steel.
-      </p>
-    </div>
 
-    <div class="control-group">
-      <label for="shippingSlider">
-        Extra Shipping Cost for Overseas Steel (USD per ton):
-        <span id="shippingValue"></span>
-      </label>
+      <label>Shipping ($/ton): <span id="shippingValue"></span></label>
       <input type="range" id="shippingSlider" min="0" max="250" step="10" value="60" />
-      <p class="hint">
-        Represents freight and logistics for ocean/long-distance shipments.
-      </p>
-    </div>
 
-    <div class="control-group">
-      <label for="iraSlider">
-        IRA Section 45X-style Incentive for Domestic Steel (USD per ton):
-        <span id="iraValue"></span>
-      </label>
-      <input type="range" id="iraSlider" min="0" max="150" step="10" value="40" />
-      <p class="hint">
-        Subtracted from U.S. steel cost to approximate domestic content credits or similar support.
-      </p>
-    </div>
+      <label>Domestic Incentive ($/ton): <span id="incentiveValue"></span></label>
+      <input type="range" id="incentiveSlider" min="0" max="150" step="10" value="40" />
 
-    <div class="control-group">
-      <label for="carbonPriceSlider">
-        Carbon Price (USD per ton of CO₂):
-        <span id="carbonPriceValue"></span>
-      </label>
-      <input type="range" id="carbonPriceSlider" min="0" max="250" step="10" value="75" />
-      <p class="hint">
-        Used to calculate a “carbon-adjusted cost” that combines price and emissions.
-      </p>
-    </div>
+      <label>Carbon Price ($/tCO₂): <span id="carbonValue"></span></label>
+      <input type="range" id="carbonSlider" min="0" max="250" step="10" value="75" />
 
-    <!-- Scenario presets -->
-    <div class="control-group presets">
-      <h3>Scenario Presets</h3>
-      <button data-preset="baseline">Baseline Today</button>
-      <button data-preset="highTariff">High Tariffs on Imports</button>
-      <button data-preset="carbon2030">Strong Carbon Policy 2030</button>
-    </div>
-  </section>
+      <h3>Presets</h3>
+      <button class="preset" data-type="baseline">Baseline</button>
+      <button class="preset" data-type="highTariff">High Tariff</button>
+      <button class="preset" data-type="carbon2050">Carbon 2050</button>
+    </section>
 
-  <!-- Main chart area -->
-  <section id="chart-section">
-    <h2>Gapminder-style Bubble Chart</h2>
-    <p class="hint">
-      Each bubble is a region/method combination. Horizontal position is delivered cost.
-      Vertical position is carbon intensity. Bubble size shows volume.
-      Hover to see details. Use the controls above to change the scenario.
-    </p>
-    <div id="chart"></div>
-  </section>
+    <!-- Chart -->
+    <section id="chartSection">
+      <div id="chart"></div>
+    </section>
 
-  <!-- Summary panel -->
+  </div>
+
+  <!-- Summary -->
   <section id="summary">
-    <h2>Summary: U.S. vs China in Current Scenario</h2>
-    <p>
-      This panel highlights the current trade-offs between U.S. and Chinese steel under the
-      selected sliders and year.
-    </p>
+    <h2>Summary: U.S. vs China</h2>
     <table>
-      <thead>
-        <tr>
-          <th>Metric</th>
-          <th>U.S. Steel</th>
-          <th>China Steel</th>
-          <th>Difference (US − China)</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td>Delivered Cost (USD/ton)</td>
-          <td id="usCostCell"></td>
-          <td id="cnCostCell"></td>
-          <td id="costDiffCell"></td>
-        </tr>
-        <tr>
-          <td>Carbon Intensity (kg CO₂/ton)</td>
-          <td id="usCo2Cell"></td>
-          <td id="cnCo2Cell"></td>
-          <td id="co2DiffCell"></td>
-        </tr>
-        <tr>
-          <td>Carbon-Adjusted Cost (USD/ton)</td>
-          <td id="usAdjCostCell"></td>
-          <td id="cnAdjCostCell"></td>
-          <td id="adjCostDiffCell"></td>
-        </tr>
-      </tbody>
+      <tr><th>Metric</th><th>U.S.</th><th>China</th><th>Δ (US − CN)</th></tr>
+      <tr>
+        <td>Delivered Cost</td>
+        <td id="usCost"></td>
+        <td id="cnCost"></td>
+        <td id="deltaCost"></td>
+      </tr>
+      <tr>
+        <td>CO₂ Intensity</td>
+        <td id="usCo2"></td>
+        <td id="cnCo2"></td>
+        <td id="deltaCo2"></td>
+      </tr>
+      <tr>
+        <td>Carbon-Adjusted Cost</td>
+        <td id="usAdj"></td>
+        <td id="cnAdj"></td>
+        <td id="deltaAdj"></td>
+      </tr>
     </table>
-    <p class="hint">
-      “Carbon-adjusted cost” adds the monetary value of emissions:
-      <code>delivered cost + carbon price × (CO₂ / 1000)</code>.
-      This helps compare options when policy or investors put a price on carbon.
-    </p>
   </section>
 
-  <footer>
-    <p>
-      This prototype uses stylized data for illustration only.
-      All numbers can be replaced with real market and emissions data by editing
-      the dataset section in <code>script.js</code>.
-    </p>
-  </footer>
-
-  <!-- Our custom logic -->
   <script src="script.js"></script>
 </body>
 </html>
