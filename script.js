@@ -51,17 +51,18 @@ function genData() {
         // Cost slopes
         cost:
           baseCost[region] +
-          (isUS ? -10 * t : 6 * t) +
-          (Math.random() - 0.5) * 30,
+          (isUS ? -12 * t : 9 * t) + 
+          (Math.random() - 0.5) * 35,
+
 
         // Emissions slopes
         co2:
           baseCo2[region] -
-          (isUS ? 10 * t : 3 * t) +
-          (Math.random() - 0.5) * 60,
+          (isUS ? 14 * t : 4 * t) +
+          (Math.random() - 0.5) * 55,
 
         // Volume grows over time → bubble size reflects real trend
-        volume: 20000 + t * 1500 + Math.random() * 8000
+        volume: 15000 + t * 3500 + Math.random() * 12000
       });
     });
   });
@@ -82,7 +83,7 @@ function computeScenario() {
     return {
       ...d,
       deliveredCost: delivered,
-      bubbleSize: Math.max(10, Math.sqrt(d.volume) / 12), // volume-driven bubble size
+      bubbleSize: Math.max(12, Math.sqrt(d.volume) / 9), // volume-driven bubble size
       carbonAdj: delivered + (d.co2 / 1000) * state.carbon
     };
   });
@@ -113,7 +114,8 @@ function buildFrames(all) {
         mode: "markers",
         marker: {
           size: d.map(i => i.bubbleSize),
-          color: regionColor(region)
+          color: regionColor(region),
+          opacity: 0.85
         }
       };
     });
@@ -136,7 +138,8 @@ function initChart() {
       mode: "markers",
       marker: {
         size: d.map(r => r.bubbleSize),
-        color: regionColor(region)
+        color: regionColor(region),
+        opacity: 0.85
       }
     };
   });
